@@ -20,7 +20,7 @@ void setup() {
 
 void loop() {
   while (Serial.available() <= 0) {
-    scrollText(songMap, 150); // Scroll the song map text every 150 milliseconds
+    //scrollText(songMap, 150); // Scroll the song map text every 150 milliseconds
   }
 
   char input = Serial.read();
@@ -32,39 +32,33 @@ void loop() {
 }
 
 void startGame() {
-  unsigned long startTime = millis();
-  unsigned long lastUpdateTime = 0;
-  int j = 0;
+    unsigned long startTime = millis();
+    int displayOffset = 0;  // To control which part of songMap is shown
+    unsigned long lastNoteTime = 0;
 
-  while (currentNoteIndex < sizeof(noteTimes) / sizeof(noteTimes[0])) {
-    unsigned long currentTime = millis() - startTime;
+    while (currentNoteIndex < sizeof(noteTimes) / sizeof(noteTimes[0])) {
+        unsigned long currentTime = millis() - startTime;
+        unsigned long nextNoteTime = noteTimes[currentNoteIndex];
 
-    // Scroll text without clearing the entire screen
-    if (currentTime - lastUpdateTime >= 333) {
-      lcd.setCursor(0, 0);
-      if (j < strlen(songMap)) {
-        lcd.print(&songMap[j]);
-        j++;
-      } else {
-        j = 0; // Reset the scroll
-      }
-      lastUpdateTime = currentTime;
+        // Check if it's time for the next note
+        if (currentTime >= nextNoteTime) {
+            // Calculate the delay since the last note
+            unsigned long delaySinceLastNote = nextNoteTime - lastNoteTime;
+            scrollText(displayOffset, delaySinceLastNote);  // Scroll based on the delay
+            Serial.print(noteTypes[currentNoteIndex]);
+            Serial.print(": ");
+            Serial.println(nextNoteTime);
+            lastNoteTime = nextNoteTime;  // Update last note time
+            currentNoteIndex++;
+            displayOffset++;  // Move the display window to the next character
+        }
+
+        checkSerialInput();
     }
 
-    if (currentTime >= noteTimes[currentNoteIndex]) {
-      Serial.print(noteTypes[currentNoteIndex]);
-      Serial.print(": ");
-      Serial.println(noteTimes[currentNoteIndex]);
-      currentNoteIndex++;
-    }
-
-    checkSerialInput();
-  }
-
-  Serial.println("Game Over!");
-  Serial.print("Final score was: ");
-  Serial.println(score);
-  // Optionally reset the game state here
+    Serial.println("Game Over!");
+    Serial.print("Final score was: ");
+    Serial.println(score);
 }
 
 void checkSerialInput() {
@@ -85,28 +79,17 @@ void checkSerialInput() {
   }
 }
 
-void scrollText(char* text, unsigned int delayTime) {
-  static unsigned int pos = 0; // Current position of scrolling
-  static unsigned long lastUpdateTime = 0; // Last update timestamp
-  if (millis() - lastUpdateTime > delayTime) {
-    lcd.setCursor(0, 0); // Set the cursor at the beginning of the first line
-    if (pos < strlen(text)) {
-      // Only print up to the end of the first line or the end of the text
-      int charCount = 0;
-      while (charCount < 16 && (pos + charCount) < strlen(text)) {
-        lcd.print(text[pos + charCount]);
-        charCount++;
-      }
-      // Fill the rest of the line with spaces if any
-      while (charCount < 16) {
-        lcd.print(" ");
-        charCount++;
-      }
-    } else {
-      lcd.print("                "); // Clear line after the end of the text
-      pos = 0; // Reset position for continuous scrolling
+void scrollText(int offset, unsigned long delay) {
+    lcd.setCursor(0, 0);
+    int start = offset % strlen(songMap);  // Ensure the offset wraps around the songMap length
+
+    // Print characters from songMap starting at the calculated offset
+    for (int i = 0; i < 16; i++) {
+        if (start + i < strlen(songMap)) {
+            lcd.print(songMap[start + i]);
+        } else {
+            lcd.print(' ');  // Fill the remaining space with blanks if end of songMap is reached
+        }
     }
-    pos++;
-    lastUpdateTime = millis();
-  }
+    delayMicroseconds(delay);  // Delay to control the speed of scrolling based on the note delay
 }
