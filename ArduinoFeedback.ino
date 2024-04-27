@@ -1,3 +1,7 @@
+//The feedback arduino for the game
+//Takes in info and displays as needed
+//Code: Marc Olvera
+
 
 #include <LiquidCrystal.h>
 
