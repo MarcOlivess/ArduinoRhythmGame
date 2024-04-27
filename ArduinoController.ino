@@ -3,6 +3,7 @@
 //Miss: 0x00
 //Game Over: 0x04
 //Score Data: Follow 0x04 with score bytes
+//Code: @eaguay6
 
 
 #include <TimeLib.h>
